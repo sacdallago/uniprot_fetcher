@@ -2,6 +2,7 @@ let fileReader = require('./utils/fileReader').read;
 let encoders = require('./utils/encoders');
 let readers = require('./utils/readers');
 let path = require('path');
+let Readable = require('stream').Readable;
 
 
 const files = [
@@ -26,17 +27,20 @@ module.exports = {
             ...request.body.options
         };
 
+        let result;
+
         // TODO: get this from request
         let currentFiles = latest;
 
-        response.set({"Content-Disposition":"attachment; filename=" + currentFiles.date + "_" + options.file + options.format});
+        response.set({
+            'Content-Type': 'application/force-download',
+            'Content-disposition':"attachment; filename=" + currentFiles.date + "_" + options.file + "." + options.format});
 
         switch (options.file){
             case 'ppi':
                 fileReader(currentFiles.human_ppi)
                     .then((utfTSVText) => {
                         let ppis = readers.ppiFileReader(utfTSVText, identifiers, options.conservative);
-                        let result;
 
                         switch(options.format){
                             case 'tsv':
@@ -44,11 +48,11 @@ module.exports = {
                                 break;
                             case 'json':
                             default:
-                                result = ppis;
+                                result = JSON.stringify(ppis);
                                 break;
                         }
 
-                        response.status(200).send(result);
+                        response.end(result);
                     })
                     .catch(err => {
                         response.status(500).send(err);
@@ -61,7 +65,6 @@ module.exports = {
                 fileReader(currentFiles.human_loc)
                     .then((utfTSVText) => {
                         let locs = readers.locFileReader(utfTSVText, identifiers);
-                        let result;
 
                         switch(options.format){
                             case 'tsv':
@@ -69,11 +72,11 @@ module.exports = {
                                 break;
                             case 'json':
                             default:
-                                result = locs;
+                                result = JSON.stringify(locs);
                                 break;
                         }
 
-                        response.status(200).send(result);
+                        response.end(result);
                     })
                     .catch(err => {
                         response.status(500).send(err);
